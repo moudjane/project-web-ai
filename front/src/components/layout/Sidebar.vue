@@ -14,7 +14,7 @@
     </div>
     
     <div class="space-y-4 flex-1">
-      <div class="text-slate-600 text-xs uppercase font-semibold tracking-widest">Documents</div>
+      <div class="text-slate-600 text-xs uppercase font-semibold tracking-widest">Discussions</div>
       <div class="py-2 px-3 bg-blue-50 rounded-lg text-blue-600 text-sm font-medium">📚 Cours de Maths</div>
       <div class="py-2 px-3 hover:bg-slate-100 rounded-lg text-slate-700 text-sm cursor-pointer transition-colors">🧬 Biologie</div>
     </div>
