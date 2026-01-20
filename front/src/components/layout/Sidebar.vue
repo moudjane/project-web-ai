@@ -19,8 +19,8 @@
       <div class="py-2 px-3 hover:bg-slate-100 rounded-lg text-slate-700 text-sm cursor-pointer transition-colors">🧬 Biologie</div>
     </div>
 
-    <!-- Section d'upload en bas -->
-    <div class="mt-auto pt-6 border-t border-slate-200">
+    <!-- Section d'upload et logout en bas -->
+    <div class="mt-auto pt-6 border-t border-slate-200 space-y-3">
       <input 
         type="file" 
         ref="fileInput" 
@@ -38,13 +38,25 @@
         </svg>
         <span>Ajouter des PDF</span>
       </button>
+
+      <button 
+        @click="handleLogout"
+        class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+        </svg>
+        <span>Se déconnecter</span>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const triggerFileInput = () => {
@@ -59,5 +71,11 @@ const handleFileUpload = (event: Event) => {
     console.log('Fichiers sélectionnés:', Array.from(files).map(f => f.name))
     // TODO: Implémenter l'upload vers le backend
   }
+}
+
+const handleLogout = () => {
+  // TODO: Implémenter la logique de déconnexion (Firebase, clear tokens, etc.)
+  console.log('Déconnexion...')
+  router.push('/login')
 }
 </script>
