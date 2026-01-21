@@ -15,7 +15,6 @@ const handleSendPrompt = async () => {
     content: prompt.value,
   }
   messages.value.push(userMessage)
-  const currentPrompt = prompt.value
   prompt.value = ''
   isLoading.value = true
 

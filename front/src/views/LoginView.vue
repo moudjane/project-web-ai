@@ -5,7 +5,6 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const email = ref('')
 const password = ref('')
-const rememberMe = ref(false)
 
 const handleLogin = async () => {
   // Redirige vers la page principale
