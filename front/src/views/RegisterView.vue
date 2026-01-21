@@ -1,92 +1,101 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { auth } from '@/firebaseConfig'
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 
 const router = useRouter()
 const name = ref('')
 const email = ref('')
 const password = ref('')
+const errorMsg = ref('')
+const isLoading = ref(false)
 
 const handleRegister = async () => {
-  console.log('Register:', { name: name.value, email: email.value, password: password.value })
-  // Logique Firebase à ajouter ici plus tard
-  router.push('/')
+  if (!name.value || !email.value || !password.value) {
+    errorMsg.value = "Tous les champs sont obligatoires."
+    return
+  }
+
+  try {
+    isLoading.value = true
+    errorMsg.value = ""
+    
+    // 1. Création de l'utilisateur dans Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value)
+    
+    // 2. Ajout du pseudo (displayName) au profil
+    await updateProfile(userCredential.user, { 
+      displayName: name.value 
+    })
+    
+    console.log("Compte créé avec succès:", userCredential.user.uid)
+    
+    // 3. Redirection vers le chat
+    router.push('/')
+    
+  } catch (err: any) {
+    console.error("Erreur Firebase:", err.code)
+    // Gestion des erreurs spécifiques pour aider l'utilisateur
+    if (err.code === 'auth/email-already-in-use') {
+      errorMsg.value = "Cet email est déjà utilisé."
+    } else if (err.code === 'auth/weak-password') {
+      errorMsg.value = "Le mot de passe doit faire au moins 6 caractères."
+    } else if (err.code === 'auth/invalid-email') {
+      errorMsg.value = "Format d'email invalide."
+    } else {
+      errorMsg.value = "Une erreur est survenue lors de l'inscription."
+    }
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
 <template>
-  <div class="min-h-dvh bg-white flex items-center justify-center p-4 font-sans text-slate-900">
-    
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-xl p-8 w-full max-w-md relative">
-      
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Register</h1>
-        <p class="text-slate-500 mt-2 text-sm font-medium">Crée ton compte pour commencer à réviser</p>
+  <div class="min-h-dvh bg-slate-50 flex items-center justify-center p-6 font-sans text-slate-900">
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-xl p-10 w-full max-w-lg relative">
+      <div class="text-center mb-12">
+        <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">Rejoindre CogniStack</h1>
+        <p class="text-slate-500 mt-3">Créez votre compte pour commencer</p>
       </div>
 
-      <form @submit.prevent="handleRegister" class="space-y-5">
-        <div>
-          <label for="name" class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
-            Pseudo
-          </label>
-          <input
-            id="name"
-            v-model="name"
-            type="text"
-            placeholder="Pseudo123"
-            required
-            class="w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all placeholder:text-slate-300"
-          />
+      <form @submit.prevent="handleRegister" class="space-y-6">
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Pseudo</label>
+          <input v-model="name" type="text" required placeholder="Ex: Mathis"
+            class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all" />
         </div>
 
-        <div>
-          <label for="email" class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
-            Email
-          </label>
-          <input
-            id="email"
-            v-model="email"
-            type="email"
-            placeholder="exemple@domaine.com"
-            required
-            class="w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all placeholder:text-slate-300"
-          />
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Email</label>
+          <input v-model="email" type="email" required placeholder="votre@email.com"
+            class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all" />
         </div>
 
-        <div>
-          <label for="password" class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
-            Mot de passe
-          </label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            class="w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all placeholder:text-slate-300"
-          />
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Mot de passe</label>
+          <input v-model="password" type="password" required placeholder="••••••••"
+            class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all" />
         </div>
 
-        <button
-          type="submit"
-          class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md shadow-blue-200 active:scale-[0.98] mt-2"
-        >
-          Créer mon compte
+        <div v-if="errorMsg" class="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100">
+          ⚠️ {{ errorMsg }}
+        </div>
+
+        <button type="submit" :disabled="isLoading"
+          class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-100 transition-all disabled:opacity-50 flex items-center justify-center">
+          <span v-if="isLoading" class="animate-spin mr-2">⏳</span>
+          {{ isLoading ? 'Création en cours...' : 'Créer mon compte' }}
         </button>
       </form>
 
-      <div class="my-8 flex items-center gap-3">
-        <div class="flex-1 h-px bg-slate-100"></div>
-        <!-- <span class="text-[10px] text-slate-300 font-bold uppercase tracking-widest px-1">Sécurité renforcée</span> -->
-        <div class="flex-1 h-px bg-slate-100"></div>
+      <div class="mt-8 text-center">
+        <p class="text-slate-500 font-medium">
+          Déjà un compte ? 
+          <router-link to="/login" class="text-blue-600 hover:underline font-bold">Se connecter</router-link>
+        </p>
       </div>
-
-      <p class="text-center text-slate-500 text-sm">
-        Déjà inscrit ?
-        <router-link to="/login" class="text-blue-600 hover:underline font-bold transition-colors">
-          Se connecter
-        </router-link>
-      </p>
     </div>
   </div>
 </template>
