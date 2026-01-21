@@ -17,7 +17,7 @@ export interface ChatMessage {
 
 export async function chatWithMistral(
   messages: ChatMessage[],
-  model: string = 'mistral-large-latest'
+  model: string = 'mistral-large-latest',
 ): Promise<string> {
   try {
     const response = await client.chat.complete({
@@ -25,41 +25,8 @@ export async function chatWithMistral(
       messages,
     })
 
-    return response.choices[0]?.message?.content || ''
-  } catch (error) {
-    console.error('Error communicating with Mistral AI:', error)
-    throw error
-  }
-}
-
-export async function chatWithContext(
-  userQuery: string,
-  contextDocuments: string[],
-  conversationHistory: ChatMessage[] = [],
-  model: string = 'mistral-large-latest'
-): Promise<string> {
-  // Build context from documents
-  const context = contextDocuments.join('\n\n')
-  
-  const systemPrompt = `You are a helpful study assistant. Use the following documents to answer questions:
-
-${context}
-
-Be concise and helpful in your responses.`
-
-  const messages: ChatMessage[] = [
-    ...conversationHistory,
-    { role: 'user', content: userQuery },
-  ]
-
-  try {
-    const response = await client.chat.complete({
-      model,
-      messages,
-      systemPrompt,
-    })
-
-    return response.choices[0]?.message?.content || ''
+    const content = response.choices[0]?.message?.content
+    return typeof content === 'string' ? content : ''
   } catch (error) {
     console.error('Error communicating with Mistral AI:', error)
     throw error

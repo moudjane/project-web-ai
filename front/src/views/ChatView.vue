@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import Sidebar from '@/components/layout/Sidebar.vue'
+import AppSidebar from '@/components/layout/AppSidebar.vue'
 import ChatWindow from '@/components/chat/ChatWindow.vue'
 </script>
 
 <template>
 	<div class="flex h-dvh w-full bg-slate-50 text-slate-900 overflow-hidden font-sans">
-		<Sidebar class="hidden md:flex w-72 flex-shrink-0 bg-white border-r border-slate-200" />
+		<AppSidebar class="hidden md:flex w-72 flex-shrink-0 bg-white border-r border-slate-200" />
 
 		<main class="flex-1 flex flex-col min-w-0">
 			<header class="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white/90 backdrop-blur-sm">
