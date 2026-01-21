@@ -1,10 +1,13 @@
 import base64
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.embeddings.embed import create_embeddings, query_embeddings_with_scores
 from src.embeddings.loader import pdf_to_documents
+
+load_dotenv()
 
 app = FastAPI(title="PDF Embeddings API")
 
