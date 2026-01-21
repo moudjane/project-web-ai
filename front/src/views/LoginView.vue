@@ -1,3 +1,18 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const email = ref('')
+const password = ref('')
+const rememberMe = ref(false)
+
+const handleLogin = async () => {
+  // Redirige vers la page principale
+  router.push('/')
+}
+</script>
+
 <template>
   <div class="min-h-dvh bg-white flex items-center justify-center p-4 font-sans text-slate-900">
     
@@ -54,18 +69,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-const email = ref('')
-const password = ref('')
-const rememberMe = ref(false)
-
-const handleLogin = async () => {
-  // Redirige vers la page principale
-  router.push('/')
-}
-</script>

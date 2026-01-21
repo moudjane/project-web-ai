@@ -1,3 +1,19 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const name = ref('')
+const email = ref('')
+const password = ref('')
+
+const handleRegister = async () => {
+  console.log('Register:', { name: name.value, email: email.value, password: password.value })
+  // Logique Firebase à ajouter ici plus tard
+  router.push('/')
+}
+</script>
+
 <template>
   <div class="min-h-dvh bg-white flex items-center justify-center p-4 font-sans text-slate-900">
     
@@ -74,19 +90,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-const name = ref('')
-const email = ref('')
-const password = ref('')
-
-const handleRegister = async () => {
-  console.log('Register:', { name: name.value, email: email.value, password: password.value })
-  // Logique Firebase à ajouter ici plus tard
-  router.push('/')
-}
-</script>

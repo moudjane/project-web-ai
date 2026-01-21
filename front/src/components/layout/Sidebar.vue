@@ -1,3 +1,31 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  
+  if (files && files.length > 0) {
+    console.log('Fichiers sélectionnés:', Array.from(files).map(f => f.name))
+    // TODO: Implémenter l'upload vers le backend
+  }
+}
+
+const handleLogout = () => {
+  // TODO: Implémenter la logique de déconnexion (Firebase, clear tokens, etc.)
+  console.log('Déconnexion...')
+  router.push('/login')
+}
+</script>
+
 <template>
   <div class="w-64 h-full bg-white border-r border-slate-200 p-6 flex flex-col">
     <!-- Header avec titre et bouton -->
@@ -51,31 +79,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-const fileInput = ref<HTMLInputElement | null>(null)
-
-const triggerFileInput = () => {
-  fileInput.value?.click()
-}
-
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const files = target.files
-  
-  if (files && files.length > 0) {
-    console.log('Fichiers sélectionnés:', Array.from(files).map(f => f.name))
-    // TODO: Implémenter l'upload vers le backend
-  }
-}
-
-const handleLogout = () => {
-  // TODO: Implémenter la logique de déconnexion (Firebase, clear tokens, etc.)
-  console.log('Déconnexion...')
-  router.push('/login')
-}
-</script>
