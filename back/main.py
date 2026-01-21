@@ -5,12 +5,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from src.embeddings.embed import create_embeddings, query_embeddings_with_scores
 from src.embeddings.loader import pdf_to_documents
 
 app = FastAPI(title="PDF Embeddings API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class PDFUploadRequest(BaseModel):
