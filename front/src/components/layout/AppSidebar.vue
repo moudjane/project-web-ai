@@ -3,8 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/firebaseConfig'
 import { signOut } from 'firebase/auth'
+import ChatSidebar from './ChatSidebar.vue'
+import { createChat } from '@/services/chatService'
+import { useChatStore } from '@/stores/chat'
 
 const router = useRouter()
+const chatStore = useChatStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
 
@@ -79,9 +83,9 @@ const handleFileUpload = async (event: Event) => {
       console.log('Réponse du serveur:', result)
       alert(`Succès ! PDF indexé (${result.pages_processed} pages).`)
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur upload:', error)
-      alert(`Erreur : ${error.message}`)
+      alert(`Erreur : ${error}`)
     } finally {
       isUploading.value = false
       if (fileInput.value) fileInput.value.value = ''
@@ -96,6 +100,11 @@ const handleLogout = async () => {
     console.error('Erreur lors de la déconnexion:', error)
   }
 }
+
+const createNewChat = async () => {
+  const chatId = await createChat()
+  chatStore.setCurrentChatId(chatId)
+}
 </script>
 
 <template>
@@ -105,6 +114,7 @@ const handleLogout = async () => {
       <button 
         class="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
         title="Nouvelle discussion"
+        @click="createNewChat"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-white">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -113,13 +123,7 @@ const handleLogout = async () => {
     </div>
     
     <div class="space-y-4 flex-1 overflow-y-auto">
-      <div class="text-slate-400 text-[10px] uppercase font-bold tracking-[0.2em] px-1">Tes Documents</div>
-      <div class="py-2.5 px-3 bg-blue-50 rounded-xl text-blue-600 text-sm font-semibold flex items-center gap-2 border border-blue-100">
-        <span>📚</span> Cours de Maths
-      </div>
-      <div class="py-2.5 px-3 hover:bg-slate-50 rounded-xl text-slate-600 text-sm font-medium cursor-pointer transition-colors flex items-center gap-2 border border-transparent">
-        <span>🧬</span> Biologie
-      </div>
+      <ChatSidebar />
     </div>
 
     <div class="mt-auto pt-6 border-t border-slate-100 space-y-3">

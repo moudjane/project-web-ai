@@ -14,7 +14,7 @@ const handleLogin = async () => {
     errorMsg.value = ''
     await signInWithEmailAndPassword(auth, email.value, password.value)
     router.push('/')
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur connexion:', error)
     errorMsg.value = "Email ou mot de passe incorrect."
   }

@@ -1,13 +1,45 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { chatWithMistral, type ChatMessage } from '@/services/mistralService'
+import { createChat, savePrompt, getChatHistory } from '@/services/chatService'
+import { useChatStore } from '@/stores/chat'
 
 const prompt = ref('')
 const messages = ref<ChatMessage[]>([])
 const isLoading = ref(false)
+const chatStore = useChatStore()
+let currentChatId: string | null = null
+
+const loadChatHistory = async () => {
+  if (!currentChatId) return
+  
+  try {
+    const history = await getChatHistory(currentChatId)
+    messages.value = history as ChatMessage[]
+  } catch (error) {
+    console.error('Failed to load chat history:', error)
+  }
+}
+
+onMounted(async () => {
+  currentChatId = chatStore.getCurrentChatId
+  await loadChatHistory()
+})
+
+// Watch for chat ID changes from store
+watch(() => chatStore.getCurrentChatId, async (newChatId) => {
+  currentChatId = newChatId
+  await loadChatHistory()
+})
 
 const handleSendPrompt = async () => {
   if (!prompt.value.trim()) return
+
+  // Create new chat if none exists
+  if (!currentChatId) {
+    currentChatId = await createChat("New Chat", "test")
+    chatStore.setCurrentChatId(currentChatId)
+  }
 
   // Add user message to conversation
   const userMessage: ChatMessage = {
@@ -15,23 +47,29 @@ const handleSendPrompt = async () => {
     content: prompt.value,
   }
   messages.value.push(userMessage)
+  const promptText = prompt.value
   prompt.value = ''
   isLoading.value = true
 
   try {
-    // Get response from Mistral
-    const response = await chatWithMistral([...messages.value])
+    await savePrompt(currentChatId, promptText)
+  } catch (error) {
+    console.error('Failed to save prompt:', error)
+  }
 
-    // Add assistant message to conversation
+  try {
+    const response = await chatWithMistral(messages.value)
+
     const assistantMessage: ChatMessage = {
       role: 'assistant',
       content: response,
     }
     messages.value.push(assistantMessage)
+    
+    await savePrompt(currentChatId, response, 'assistant')
   } catch (error) {
     console.error('Failed to get response:', error)
-    // Optionally show error message to user
-    messages.value.pop() // Remove the user message if request failed
+    messages.value.pop()
   } finally {
     isLoading.value = false
   }
