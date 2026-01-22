@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { getChatById, getCurrentUserChats, updateChatTitle } from '@/services/chatService'
+import { getCurrentUserChats, updateChatTitle } from '@/services/chatService'
 import { useChatStore } from '@/stores/chat'
 
 const chats = ref<Array<{ id: string; title: string }>>([])
@@ -14,12 +14,7 @@ const loadChats = async () => {
   try {
     isLoading.value = true
     error.value = ''
-    chats.value = await getCurrentUserChats()
-    
-    if (chats.value.length > 0) {
-      chatStore.setCurrentChatId(chats.value[0]?.id ?? "")
-    }
-    
+    chats.value = await getCurrentUserChats()    
   } catch (err) {
     console.error('Failed to load chats:', err)
     error.value = 'Failed to load chats'
@@ -28,8 +23,12 @@ const loadChats = async () => {
   }
 }
 
-onMounted(() => {
-  loadChats()
+onMounted(async () => {
+  await loadChats()
+
+  if (chats.value.length > 0) {
+    chatStore.setCurrentChatId(chats.value[0]!.id)
+  }
 })
 
 // Watch for chat store changes and refresh the list
@@ -38,10 +37,7 @@ watch(() => chatStore.getCurrentChatId, async () => {
 })
 
 const selectChat = async (chatId: string) => {
-  console.log('Selected chat:', chatId)
   chatStore.setCurrentChatId(chatId)
-  const chat = await getChatById(chatId)
-  console.log('Chat details:', chat)
 }
 
 const startEditingTitle = (chatId: string, currentTitle: string) => {

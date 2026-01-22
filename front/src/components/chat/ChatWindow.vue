@@ -15,7 +15,15 @@ const loadChatHistory = async () => {
   
   try {
     const history = await getChatHistory(currentChatId)
-    messages.value = history as ChatMessage[]
+    console.log('Loaded chat history:', history)
+    
+    // Map the history to ChatMessage format
+    messages.value = history.map((doc) => ({
+      role: doc.role as 'user' | 'assistant',
+      content: doc.content as string
+    }))
+    
+    console.log('Mapped messages:', messages.value)
   } catch (error) {
     console.error('Failed to load chat history:', error)
   }
@@ -58,9 +66,8 @@ const handleSendPrompt = async () => {
   }
 
   try {
-    // Embed prompt give prompt
-    // request /embeddings API
-    const response = await chatWithMistral(messages.value) // instead of message.value give embedded prompt
+    // Get response from Mistral
+    const response = await chatWithMistral(messages.value)
 
     const assistantMessage: ChatMessage = {
       role: 'assistant',
