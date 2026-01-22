@@ -104,11 +104,17 @@ ${promptText}`
     // 5. Obtenir la réponse de Mistral en streaming
     let fullResponse = ''
     const stream = chatWithMistralStream(conversationForMistral)
+    const messageIndex = messages.value.length - 1
 
     for await (const chunk of stream) {
       fullResponse += chunk
-      // Mettre à jour le contenu du message en temps réel
-      assistantMessage.content = fullResponse
+      // Mettre à jour le message en remplaçant l'objet pour déclencher la réactivité
+      messages.value[messageIndex] = {
+        role: 'assistant',
+        content: fullResponse,
+      }
+      // Force le rendu avant de continuer
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
       await scrollToBottom()
     }
 

@@ -38,15 +38,18 @@ export async function* chatWithMistralStream(
   model: string = 'mistral-large-latest',
 ): AsyncGenerator<string, void, unknown> {
   try {
-    const response = await client.chat.stream({
+    const stream = client.chat.stream({
       model,
       messages,
     })
 
-    for await (const chunk of response) {
-      const content = chunk.data.choices[0]?.delta?.content
-      if (content) {
-        yield content
+    for await (const event of stream) {
+      if (event.data.choices && event.data.choices.length > 0) {
+        const delta = event.data.choices[0].delta
+        if (delta && delta.content) {
+          console.log('Yielding chunk:', delta.content)
+          yield delta.content
+        }
       }
     }
   } catch (error) {
