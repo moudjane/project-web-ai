@@ -32,3 +32,25 @@ export async function chatWithMistral(
     throw error
   }
 }
+
+export async function* chatWithMistralStream(
+  messages: ChatMessage[],
+  model: string = 'mistral-large-latest',
+): AsyncGenerator<string, void, unknown> {
+  try {
+    const response = await client.chat.stream({
+      model,
+      messages,
+    })
+
+    for await (const chunk of response) {
+      const content = chunk.data.choices[0]?.delta?.content
+      if (content) {
+        yield content
+      }
+    }
+  } catch (error) {
+    console.error('Error streaming with Mistral AI:', error)
+    throw error
+  }
+}
