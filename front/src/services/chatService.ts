@@ -2,6 +2,49 @@ import { getFirestore, collection, addDoc, query, getDocs, orderBy, where, getDo
 import { auth } from "@/firebaseConfig"
 
 const db = getFirestore()
+const API_URL = "http://localhost:8000"
+
+/**
+ * Interroge le backend pour récupérer les segments de PDF pertinents
+ */
+export async function queryVectorStore(prompt: string): Promise<string> {
+  const user = auth.currentUser
+  if (!user) {
+    throw new Error("User not authenticated")
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: prompt,
+        user_id: user.uid,
+        k: 4 // Nombre de segments à récupérer
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to query vector store")
+    }
+
+    const data = await response.json()
+    
+    if (data.results_count === 0) {
+      return ""
+    }
+
+    // On concatène les résultats pour créer le contexte
+    return data.results
+      .map((res) => `[Source: ${res.metadata.source}]: ${res.content}`)
+      .join("\n\n")
+  } catch (error) {
+    console.error("Vector store query error:", error)
+    return ""
+  }
+}
 
 export async function savePrompt(chatId: string, prompt: string, role: "user" | "assistant" = "user"): Promise<string> {
   const user = auth.currentUser
@@ -82,4 +125,3 @@ export async function updateChatTitle(chatId: string, newTitle: string): Promise
     updatedAt: new Date().toISOString(),
   })
 }
-
