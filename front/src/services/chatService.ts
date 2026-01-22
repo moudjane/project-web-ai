@@ -1,7 +1,50 @@
-import { getFirestore, collection, addDoc, query, getDocs, orderBy, where, getDoc, doc, updateDoc } from "firebase/firestore"
+import { getFirestore, collection, addDoc, query, getDocs, orderBy, where, getDoc, doc } from "firebase/firestore"
 import { auth } from "@/firebaseConfig"
 
 const db = getFirestore()
+const API_URL = "http://localhost:8000"
+
+/**
+ * Interroge le backend pour récupérer les segments de PDF pertinents
+ */
+export async function queryVectorStore(prompt: string): Promise<string> {
+  const user = auth.currentUser
+  if (!user) {
+    throw new Error("User not authenticated")
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: prompt,
+        user_id: user.uid,
+        k: 4 // Nombre de segments à récupérer
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to query vector store")
+    }
+
+    const data = await response.json()
+    
+    if (data.results_count === 0) {
+      return ""
+    }
+
+    // On concatène les résultats pour créer le contexte
+    return data.results
+      .map((res: any) => `[Source: ${res.metadata.source}]: ${res.content}`)
+      .join("\n\n")
+  } catch (error) {
+    console.error("Vector store query error:", error)
+    return ""
+  }
+}
 
 export async function savePrompt(chatId: string, prompt: string, role: "user" | "assistant" = "user"): Promise<string> {
   const user = auth.currentUser
@@ -73,13 +116,3 @@ export async function getChatById(chatId: string): Promise<{ id: string; title: 
     ...snapshot.data()
   } as { id: string; title: string; userId: string; subject?: string; createdAt: string; updatedAt: string }
 }
-
-export async function updateChatTitle(chatId: string, newTitle: string): Promise<void> {
-  const chatRef = doc(db, "chats", chatId)
-  
-  await updateDoc(chatRef, {
-    title: newTitle,
-    updatedAt: new Date().toISOString(),
-  })
-}
-

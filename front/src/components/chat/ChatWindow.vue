@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { chatWithMistral, type ChatMessage } from '@/services/mistralService'
-import { createChat, savePrompt, getChatHistory } from '@/services/chatService'
+import { createChat, savePrompt, getChatHistory, queryVectorStore } from '@/services/chatService'
 import { useChatStore } from '@/stores/chat'
 
 const prompt = ref('')
@@ -26,7 +26,6 @@ onMounted(async () => {
   await loadChatHistory()
 })
 
-// Watch for chat ID changes from store
 watch(() => chatStore.getCurrentChatId, async (newChatId) => {
   currentChatId = newChatId
   await loadChatHistory()
@@ -35,32 +34,49 @@ watch(() => chatStore.getCurrentChatId, async (newChatId) => {
 const handleSendPrompt = async () => {
   if (!prompt.value.trim()) return
 
-  // Create new chat if none exists
   if (!currentChatId) {
-    currentChatId = await createChat("New Chat", "test")
+    currentChatId = await createChat("Nouveau Chat", "Révisions")
     chatStore.setCurrentChatId(currentChatId)
   }
 
-  // Add user message to conversation
+  const promptText = prompt.value
   const userMessage: ChatMessage = {
     role: 'user',
-    content: prompt.value,
+    content: promptText,
   }
+  
   messages.value.push(userMessage)
-  const promptText = prompt.value
   prompt.value = ''
   isLoading.value = true
 
   try {
+    // 1. Sauvegarder la question utilisateur dans Firestore
     await savePrompt(currentChatId, promptText)
-  } catch (error) {
-    console.error('Failed to save prompt:', error)
-  }
 
-  try {
-    // Embed prompt give prompt
-    // request /embeddings API
-    const response = await chatWithMistral(messages.value) // instead of message.value give embedded prompt
+    // 2. RAG : Chercher du contexte dans les PDF via le backend Python
+    const context = await queryVectorStore(promptText)
+    
+    // 3. Préparer les messages pour Mistral (avec contexte si disponible)
+    let conversationForMistral = [...messages.value]
+    
+    if (context) {
+      const augmentedContent = `Utilise uniquement les informations suivantes pour répondre à la question de l'utilisateur. Si tu ne trouves pas la réponse dans le contexte, dis-le poliment.
+
+CONTEXTE :
+${context}
+
+QUESTION :
+${promptText}`
+
+      // On remplace le contenu du dernier message pour l'API Mistral uniquement
+      conversationForMistral[conversationForMistral.length - 1] = {
+        role: 'user',
+        content: augmentedContent
+      }
+    }
+
+    // 4. Obtenir la réponse de Mistral
+    const response = await chatWithMistral(conversationForMistral)
 
     const assistantMessage: ChatMessage = {
       role: 'assistant',
@@ -68,10 +84,11 @@ const handleSendPrompt = async () => {
     }
     messages.value.push(assistantMessage)
     
+    // 5. Sauvegarder la réponse de l'assistant
     await savePrompt(currentChatId, response, 'assistant')
   } catch (error) {
-    console.error('Failed to get response:', error)
-    messages.value.pop()
+    console.error('Failed to process message:', error)
+    // Optionnel : ajouter un message d'erreur dans l'interface
   } finally {
     isLoading.value = false
   }
@@ -80,7 +97,6 @@ const handleSendPrompt = async () => {
 
 <template>
   <div class="flex-1 flex flex-col h-full bg-slate-50 text-slate-900">
-    <!-- Messages Display -->
     <div class="flex-1 overflow-y-auto p-8 space-y-4">
       <div v-if="messages.length === 0" class="h-full flex flex-col items-center justify-center">
         <div class="w-16 h-16 bg-blue-600/15 rounded-full flex items-center justify-center mb-4">
@@ -121,7 +137,6 @@ const handleSendPrompt = async () => {
       </div>
     </div>
 
-    <!-- Input Area -->
     <div class="p-6 border-t border-slate-200 bg-white/90 backdrop-blur-sm">
       <div class="flex items-center gap-4 w-full">
         <input 
