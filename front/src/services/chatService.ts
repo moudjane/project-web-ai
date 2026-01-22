@@ -1,4 +1,4 @@
-import { getFirestore, collection, addDoc, query, getDocs, orderBy, where, getDoc, doc } from "firebase/firestore"
+import { getFirestore, collection, addDoc, query, getDocs, orderBy, where, getDoc, doc, updateDoc } from "firebase/firestore"
 import { auth } from "@/firebaseConfig"
 
 const db = getFirestore()
@@ -115,4 +115,13 @@ export async function getChatById(chatId: string): Promise<{ id: string; title: 
     id: snapshot.id,
     ...snapshot.data()
   } as { id: string; title: string; userId: string; subject?: string; createdAt: string; updatedAt: string }
+}
+
+export async function updateChatTitle(chatId: string, newTitle: string): Promise<void> {
+  const chatRef = doc(db, "chats", chatId)
+  
+  await updateDoc(chatRef, {
+    title: newTitle,
+    updatedAt: new Date().toISOString(),
+  })
 }
