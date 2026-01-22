@@ -3,6 +3,7 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import { chatWithMistralStream, type ChatMessage } from '@/services/mistralService'
 import { createChat, savePrompt, getChatHistory, queryVectorStore } from '@/services/chatService'
 import { useChatStore } from '@/stores/chat'
+import { marked } from 'marked' // 1. Import de marked
 
 const prompt = ref('')
 const messages = ref<ChatMessage[]>([])
@@ -10,6 +11,15 @@ const isLoading = ref(false)
 const chatStore = useChatStore()
 let currentChatId: string | null = null
 const chatContainer = ref<HTMLElement | null>(null)
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
+const renderMarkdown = (text: string) => {
+  return marked.parse(text)
+}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -23,15 +33,10 @@ const loadChatHistory = async () => {
 
   try {
     const history = await getChatHistory(currentChatId)
-    console.log('Loaded chat history:', history)
-
-    // Map the history to ChatMessage format
     messages.value = history.map((doc) => ({
       role: doc.role as 'user' | 'assistant',
       content: doc.content as string,
     }))
-
-    console.log('Mapped messages:', messages.value)
   } catch (error) {
     console.error('Failed to load chat history:', error)
   }
@@ -67,13 +72,11 @@ const handleSendPrompt = async () => {
   messages.value.push(userMessage)
   prompt.value = ''
   isLoading.value = true
+  await scrollToBottom()
 
   try {
     await savePrompt(currentChatId, promptText)
-
     const context = await queryVectorStore(promptText)
-
-    // 3. Préparer les messages pour Mistral (avec contexte si disponible)
     const conversationForMistral = [...messages.value]
 
     if (context) {
@@ -94,31 +97,25 @@ ${promptText}`
       }
     }
 
-    // 4. Créer un message assistant vide pour le streaming
     const assistantMessage: ChatMessage = {
       role: 'assistant',
       content: '',
     }
     messages.value.push(assistantMessage)
 
-    // 5. Obtenir la réponse de Mistral en streaming
     let fullResponse = ''
     const stream = chatWithMistralStream(conversationForMistral)
     const messageIndex = messages.value.length - 1
 
     for await (const chunk of stream) {
       fullResponse += chunk
-      // Mettre à jour le message en remplaçant l'objet pour déclencher la réactivité
       messages.value[messageIndex] = {
         role: 'assistant',
         content: fullResponse,
       }
-      // Force le rendu avant de continuer
-      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
       await scrollToBottom()
     }
 
-    // 6. Sauvegarder la réponse complète de l'assistant
     await savePrompt(currentChatId, fullResponse, 'assistant')
   } catch (error) {
     console.error('Failed to process message:', error)
@@ -130,7 +127,7 @@ ${promptText}`
 
 <template>
   <div class="flex-1 flex flex-col h-full bg-slate-50 text-slate-900">
-    <div ref="chatContainer" class="flex-1 overflow-y-auto p-8 space-y-4">
+    <div ref="chatContainer" class="flex-1 overflow-y-auto p-8 space-y-6">
       <div v-if="messages.length === 0" class="h-full flex flex-col items-center justify-center">
         <div class="w-16 h-16 bg-blue-600/15 rounded-full flex items-center justify-center mb-4">
           <span class="text-2xl">🤖</span>
@@ -151,16 +148,18 @@ ${promptText}`
         >
           <span class="text-sm">🤖</span>
         </div>
+        
         <div
-          class="max-w-xs lg:max-w-md xl:max-w-lg px-4 py-3 rounded-lg"
+          class="max-w-xs lg:max-w-md xl:max-w-2xl px-4 py-3 rounded-lg prose prose-slate"
           :class="
             message.role === 'user'
-              ? 'bg-blue-600 text-white rounded-br-none'
-              : 'bg-slate-200 text-slate-900 rounded-bl-none'
+              ? 'bg-blue-600 text-white rounded-br-none prose-invert'
+              : 'bg-slate-200 text-slate-900 rounded-bl-none shadow-sm'
           "
         >
-          <p class="text-sm">{{ message.content }}</p>
+          <div class="markdown-content" v-html="renderMarkdown(message.content)"></div>
         </div>
+
         <div
           v-if="message.role === 'user'"
           class="flex-shrink-0 w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center"
@@ -170,25 +169,7 @@ ${promptText}`
       </div>
 
       <div v-if="isLoading" class="flex gap-4">
-        <div
-          class="flex-shrink-0 w-8 h-8 bg-blue-600/15 rounded-full flex items-center justify-center"
-        >
-          <span class="text-sm">🤖</span>
         </div>
-        <div class="bg-slate-200 text-slate-900 px-4 py-3 rounded-lg rounded-bl-none">
-          <div class="flex gap-2">
-            <div class="w-2 h-2 bg-slate-500 rounded-full animate-bounce"></div>
-            <div
-              class="w-2 h-2 bg-slate-500 rounded-full animate-bounce"
-              style="animation-delay: 0.1s"
-            ></div>
-            <div
-              class="w-2 h-2 bg-slate-500 rounded-full animate-bounce"
-              style="animation-delay: 0.2s"
-            ></div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div class="p-6 border-t border-slate-200 bg-white/90 backdrop-blur-sm">
@@ -206,22 +187,33 @@ ${promptText}`
           :disabled="isLoading || !prompt.trim()"
           class="flex-shrink-0 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-5 h-5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
           </svg>
         </button>
       </div>
     </div>
   </div>
 </template>
+
+<style>
+.markdown-content p {
+  margin-bottom: 0.5rem;
+}
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+.markdown-content ul, .markdown-content ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.markdown-content ul {
+  list-style-type: disc;
+}
+.markdown-content strong {
+  font-weight: 700;
+}
+.prose-invert strong {
+  color: white;
+}
+</style>
