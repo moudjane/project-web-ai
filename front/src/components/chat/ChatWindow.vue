@@ -69,25 +69,25 @@ const handleSendPrompt = async () => {
   isLoading.value = true
 
   try {
-    // 1. Sauvegarder la question utilisateur dans Firestore
     await savePrompt(currentChatId, promptText)
 
-    // 2. RAG : Chercher du contexte dans les PDF via le backend Python
     const context = await queryVectorStore(promptText)
 
     // 3. Préparer les messages pour Mistral (avec contexte si disponible)
     const conversationForMistral = [...messages.value]
 
     if (context) {
-      const augmentedContent = `Utilise uniquement les informations suivantes pour répondre à la question de l'utilisateur. Si tu ne trouves pas la réponse dans le contexte, dis-le poliment.
+      const augmentedContent = `Tu es un assistant pédagogique. Voici des extraits pertinents issus des cours de l'étudiant pour t'aider à répondre.
 
-CONTEXTE :
+PRIORITÉ : Utilise ces informations en priorité si elles sont pertinentes.
+FLEXIBILITÉ : Si les extraits ne suffisent pas ou si la question demande une explication générale (ex: un calcul de maths), utilise tes connaissances générales pour compléter la réponse et aider l'étudiant au mieux.
+
+DOCUMENTS DE RÉFÉRENCE :
 ${context}
 
-QUESTION :
+QUESTION DE L'ÉTUDIANT :
 ${promptText}`
 
-      // On remplace le contenu du dernier message pour l'API Mistral uniquement
       conversationForMistral[conversationForMistral.length - 1] = {
         role: 'user',
         content: augmentedContent,
@@ -116,7 +116,6 @@ ${promptText}`
     await savePrompt(currentChatId, fullResponse, 'assistant')
   } catch (error) {
     console.error('Failed to process message:', error)
-    // Optionnel : ajouter un message d'erreur dans l'interface
   } finally {
     isLoading.value = false
   }
