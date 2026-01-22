@@ -4,9 +4,17 @@ import { auth } from "@/firebaseConfig"
 const db = getFirestore()
 const API_URL = "http://localhost:8000"
 
-/**
- * Interroge le backend pour récupérer les segments de PDF pertinents
- */
+interface VectorResult {
+  content: string;
+  metadata: {
+    source: string;
+    page?: number;
+    user_id: string;
+    [key: string]: any;
+  };
+  similarity_score: number;
+}
+
 export async function queryVectorStore(prompt: string): Promise<string> {
   const user = auth.currentUser
   if (!user) {
@@ -22,7 +30,7 @@ export async function queryVectorStore(prompt: string): Promise<string> {
       body: JSON.stringify({
         query: prompt,
         user_id: user.uid,
-        k: 4 // Nombre de segments à récupérer
+        k: 4 
       })
     })
 
@@ -32,13 +40,13 @@ export async function queryVectorStore(prompt: string): Promise<string> {
 
     const data = await response.json()
     
-    if (data.results_count === 0) {
+    if (!data.results || data.results_count === 0) {
       return ""
     }
 
-    // On concatène les résultats pour créer le contexte
+    // On spécifie ici que 'res' est de type 'VectorResult'
     return data.results
-      .map((res) => `[Source: ${res.metadata.source}]: ${res.content}`)
+      .map((res: VectorResult) => `[Source: ${res.metadata.source}]: ${res.content}`)
       .join("\n\n")
   } catch (error) {
     console.error("Vector store query error:", error)
