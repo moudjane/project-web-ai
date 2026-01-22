@@ -56,7 +56,65 @@ POSTGRES_DB=langchain
 
 ## Running the Application
 
-### 1. Set up your Mistral API Key
+### Option 1: Using Docker Compose (Recommended)
+
+This is the easiest way to run both the backend and database together.
+
+1. **Create a `.env` file** in the `back` directory:
+
+```bash
+# Required: Mistral API Key for embeddings
+MISTRAL_API_KEY=your_mistral_api_key_here
+
+# Optional: PostgreSQL Configuration (defaults shown)
+POSTGRES_USER=langchain
+POSTGRES_PASSWORD=langchain
+POSTGRES_DB=langchain
+POSTGRES_PORT=6024
+```
+
+2. **Start both services**:
+
+```bash
+docker-compose up -d
+```
+
+This will:
+- Start PostgreSQL with pgvector on port 6024
+- Start the FastAPI backend on port 8000
+- Create a persistent volume for database data
+- Connect both services on a private network
+
+3. **View logs**:
+
+```bash
+# All services
+docker-compose logs -f
+
+# Just backend
+docker-compose logs -f backend
+
+# Just database
+docker-compose logs -f db
+```
+
+4. **Stop services**:
+
+```bash
+# Stop but keep data
+docker-compose down
+
+# Stop and remove data
+docker-compose down -v
+```
+
+The API will be available at `http://localhost:8000`
+
+### Option 2: Local Development
+
+If you want to run the backend locally (outside Docker):
+
+1. **Set up your Mistral API Key**:
 
 ```bash
 export MISTRAL_API_KEY=your_mistral_api_key_here
@@ -64,7 +122,7 @@ export MISTRAL_API_KEY=your_mistral_api_key_here
 
 Or add it to your `.env` file.
 
-### 2. Start PostgreSQL with pgvector
+2. **Start PostgreSQL with pgvector**:
 
 ```bash
 make db
@@ -76,7 +134,7 @@ This will start a PostgreSQL container with:
 - Password: `langchain`
 - Port: `6024`
 
-### 3. Start the FastAPI server
+3. **Start the FastAPI server**:
 
 ```bash
 make run
@@ -346,10 +404,29 @@ axios.post('http://localhost:8000/query', {
 
 ## Database Connection
 
-The application connects to PostgreSQL at:
+### When using Docker Compose:
+The backend connects to the database using the service name:
+```
+postgresql://langchain:langchain@db:5432/langchain
+```
+
+### When running locally:
+The backend connects to PostgreSQL on your host:
 ```
 postgresql://langchain:langchain@localhost:6024/langchain
 ```
+
+### Environment Variables
+
+The connection can be configured using:
+- `POSTGRES_HOST` - Database host (default: `localhost`, Docker: `db`)
+- `POSTGRES_PORT` - Database port (default: `6024`, inside Docker: `5432`)
+- `POSTGRES_USER` - Database user (default: `langchain`)
+- `POSTGRES_PASSWORD` - Database password (default: `langchain`)
+- `POSTGRES_DB` - Database name (default: `langchain`)
+
+Or use a complete connection string:
+- `DB_CONNECTION_STRING` - Full PostgreSQL connection URL (overrides individual settings)
 
 ## Development
 
