@@ -58,7 +58,9 @@ const handleSendPrompt = async () => {
   }
 
   try {
-    const response = await chatWithMistral(messages.value)
+    // Embed prompt give prompt
+    // request /embeddings API
+    const response = await chatWithMistral(messages.value) // instead of message.value give embedded prompt
 
     const assistantMessage: ChatMessage = {
       role: 'assistant',
