@@ -38,7 +38,7 @@ A full-stack AI chat application with Vue.js frontend and Python backend.
 
 #### Prerequisites :
 
-Node version : ^20.19.0 || >=22.12.0
+Node version : 25.4.0
 
 1. Navigate to the frontend folder:
    ```bash
